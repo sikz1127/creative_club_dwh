@@ -1,0 +1,281 @@
+
+version: 2
+
+sources:
+  - name: webdata # name of the source
+    database: tcc_analytics
+    schema: raw
+    tables:
+      - name: raw_customers # Name of the source table in Snowflake
+        columns:
+          - name: "'customer_id'" # Assuming this is unique
+            description: "Primary key of the raw customer table."
+            tests:
+              #- unique
+              - not_null
+          - name: "'address_hash_id'"
+            description: "Hashed representation of the customer's address."
+            tests:
+              - not_null # Assuming an address is always required
+          - name: "'country'"
+            description: "Country of the customer, likely based on address."
+            tests:
+              - not_null
+              #- accepted_values: # Add known valid country codes/names
+              #    values: [
+              #      'DE', 'PT', 'IT', 'NL', 'BE', 'PL', 'FR', 'DK', 'FI',
+              #      'AT', 'GB', 'IE', 'ES', 'CH', 'CZ', 'LU', 'AE', 'GP',
+              #      'SK', 'KZ', 'NO', 'SE', 'AU', 'NU', 'CY'
+              #    ]
+              #    severity: warn # You can make this a warning instead of an error
+          - name: "'created_at'" #assumtion not timezone currently, but can be UTC?
+            description: "Timestamp when the customer record was created."
+            tests:
+              - not_null
+          - name: "'updated_at'"
+            description: "Timestamp when the customer record was last updated."
+            tests:
+              - not_null
+          - name: "'currency_unit'"
+            description: "Currency used by the customer or for the transaction."
+            tests:
+              - not_null
+              #- accepted_values:
+              #    values: ['EUR', 'SEK', 'GBP', 'PLN', 'DKK','CZK'] # Example list of current customers table
+          - name: "'tax_eucountry'"
+            description: "Indicator if the customer is in an EU country for tax purposes."
+            tests:
+              - not_null
+
+      - name: raw_orders
+        columns:
+          - name: "'order_id'"
+            description: "Unique identifier for the order. Primary key of this table."
+            tests:
+              #- unique why fails unique?
+              - not_null
+
+          - name: "'order_number'" # External or human-readable order number
+            description: "Human-readable or external order number."
+            tests:
+              - not_null # Assuming every order must have an order number
+              # - unique # Potentially unique, but could be non-unique if system allows it. Assess your data.
+
+          - name: "'webshop_order_number'" # Specific order number from the webshop frontend
+            description: "Order number as displayed or used by the webshop system."
+            # tests:
+              # - not_null # If always present
+              # - unique # If unique
+
+          - name: "'sales_event'"
+            description: "Indicates if the order was part of a specific sales event (e.g., 'Black Friday', 'Summer Sale')."
+            tests:
+              - not_null # Assuming this field is always populated, even if with a default like 'None' or 'Regular'
+              # - accepted_values:
+              #     values: ['Black Friday', 'Summer Sale', 'Holiday Special', 'None', 'Regular'] # Example values
+
+          - name: "'order_type'"
+            description: "Type of the order (e.g., 'Standard', 'Subscription', 'Return')."
+            tests:
+              - not_null
+              # - accepted_values:
+              #     values: ['Online', 'InStore', 'ClickAndCollect', 'Return'] # Example values
+
+          - name: "'customer_id'"
+            description: "Identifier for the customer who placed the order. Foreign key to customers table."
+            tests:
+              - not_null
+              # - relationships: # If you have a raw_customers source defined
+              #     to: source('webdata', 'raw_customers') # Adjust source name and table name
+              #     field: _id # Or whatever the PK of raw_customers is
+
+          - name: "'shop_id'"
+            description: "Identifier for the shop associated with the order. Foreign key to shops table."
+            tests:
+              - not_null
+              # - relationships: # If you have a raw_shops source defined
+              #     to: source('webdata', 'raw_shops') # Adjust source name and table name
+              #     field: id # Or whatever the PK of raw_shops is
+
+          - name: "'order_date'"
+            description: "Date when the order was placed by the customer."
+            tests:
+              - not_null
+
+          - name: "'delivery_date'"
+            description: "Date when the order is scheduled for or was delivered. Can be null if not yet delivered/applicable."
+            # No not_null test by default, as it might be legitimately null.
+
+          - name: "'booking_date'"
+            description: "Date when the order was booked or confirmed in the system."
+            tests:
+              - not_null # Assuming an order is always booked
+
+          - name: "'created_at'"
+            description: "Timestamp of when the order record was created in the source system."
+            tests:
+              - not_null
+
+          - name: "'updated_at'"
+            description: "Timestamp of when the order record was last updated in the source system."
+            tests:
+              - not_null
+      - name: raw_order_positions
+        columns:
+          - name: "'order_pos_id'" # Case-sensitive column name as it exists in Snowflake
+            description: "Unique identifier for the order position/line item. Primary key."
+            tests:
+              #- unique
+              - not_null
+
+          - name: "'order_id'"
+            description: "Identifier for the order this line item belongs to. Foreign key to orders table."
+            tests:
+              - not_null
+              # - relationships:
+              #     to: source('webdata', 'raw_orders') # Adjust to your orders source table
+              #     field: "order_id" # PK of the orders table (ensure this is also case-sensitive quoted if needed)
+
+          - name: "'product_id'"
+            description: "Identifier for the product in this line item. Foreign key to products table."
+            tests:
+              - not_null
+              # - relationships:
+              #     to: source('webdata', 'raw_products') # Adjust to your products source table
+              #     field: "product_id" # PK of the products table (ensure this is also case-sensitive quoted if needed)
+
+          - name: "'product_unit'" # Example: 'PCS', 'MTR', or could be the quantity itself. Clarify its meaning.
+            description: "Unit of the product sold (e.g., pieces, kilograms) or quantity."
+            tests:
+              - not_null # Assuming quantity or unit is always specified for a line item
+              # If this column represents quantity, you might add a numeric test (e.g., >= 0)
+              # If it's a unit string like 'PCS', 'BOX':
+              # - accepted_values:
+              #     values: ['PCS', 'BOX', 'KG', 'METER'] # Example values
+
+          - name: "'product_name'"
+            description: "Name of the product. Might be denormalized for easier reference."
+            # tests:
+              # - not_null # Only if product_name is guaranteed to be populated in the source.
+                           # Often, product_id is the source of truth and name can be looked up.
+
+          - name: "'price'" # Assuming this is the price per unit or total line item price.
+            description: "Price for this line item (either per unit or total for the quantity)."
+            tests:
+              - not_null
+            # Consider a test to ensure price is non-negative (e.g., using dbt_utils.expression_is_true or a singular test)
+            # tests:
+            #   - dbt_utils.expression_is_true: # Requires dbt_utils package
+            #       expression: "\"price\" >= 0" # Note double quotes around price because it's a case-sensitive identifier
+
+          - name: "'created_at'"
+            description: "Timestamp of when the order position record was created."
+            tests:
+              - not_null
+
+          - name: "'updated_at'"
+            description: "Timestamp of when the order position record was last updated."
+            tests:
+              - not_null
+      - name: raw_products
+        columns:
+          - name: "'product_id'" # Case-sensitive column name as it exists in Snowflake
+            description: "Unique identifier for the base product."
+            tests:
+              #- unique # If this table is at the base product grain and product_id is the PK
+              - not_null
+
+          - name: "'sku_id'"
+            description: "Unique identifier for the stock keeping unit (often represents a specific variant)."
+            tests:
+              #- unique # If this table is at the SKU/variant grain and sku_id is the PK
+              - not_null
+            # If "product_id" is the base product and "sku_id" is the variant,
+            # then "sku_id" would be unique, and "product_id" would not be on its own.
+            # You might have a composite primary key in reality (product_id, variant_attributes).
+            # For simplicity here, assuming sku_id is the grain's PK if present.
+
+          - name: "'product_name'"
+            description: "Name of the product."
+            tests:
+              - not_null # Usually a product has a name
+
+          - name: "'product_number'"
+            description: "Internal or manufacturer product number."
+            # tests:
+              # - not_null # If always present
+              # - unique # If it's a unique identifier
+
+          - name: "'variant_name'"
+            description: "Name or description of the product variant (e.g., 'Blue, Large')."
+            # Can be null if is_variant is false or if base products don't have a variant name.
+
+          - name: "'is_variant'"
+            description: "Boolean flag indicating if this record represents a variant of a base product."
+            tests:
+              - not_null
+              #- accepted_values: # Assuming boolean-like values
+              #    values: [true, false] #
+
+          - name: "'product_state_desc'"
+            description: "Description of the product's current state or lifecycle status (e.g., 'Active', 'Discontinued')."
+            tests:
+              - not_null
+              # - accepted_values:
+              #     values: ['Active', 'Inactive', 'Discontinued', 'Coming Soon'] # Example values
+
+          - name: "'first_published_at'"
+            description: "Timestamp of when the product was first made available or published."
+            # Can be null if product is not yet published.
+
+          - name: "'created_at'"
+            description: "Timestamp of when the product record was created in the source system."
+            tests:
+              - not_null
+
+          - name: "'updated_at'"
+            description: "Timestamp of when the product record was last updated in the source system."
+            tests:
+              - not_null
+      - name: raw_shops
+        columns:
+          - name: "'shop_id'" # Case-sensitive column name as it exists in Snowflake
+            description: "Unique identifier for the shop. Primary key."
+            tests:
+              #- unique
+              - not_null
+
+          - name: "'shop'" # Assuming this is the shop name
+            description: "Name of the shop or business division."
+            tests:
+              - not_null
+              # - unique # If shop names are expected to be unique
+
+          - name: "'platform'"
+            description: "The e-commerce platform or system the shop operates on (e.g., 'Shopify', 'Magento', 'Custom')."
+            tests:
+              - not_null
+              # - accepted_values:
+              #     values: ['Shopify', 'Magento', 'WooCommerce', 'Custom'] # Example values
+
+          - name: "'locale'"
+            description: "Primary locale associated with the shop (e.g., 'en_US', 'de_DE')."
+            tests:
+              - not_null
+              # - accepted_values: # Add known valid locale codes
+              #     values: ['en_US', 'en_GB', 'de_DE', 'fr_FR', 'es_ES'] # Example values
+
+          - name: "'shop_locale'" # This was listed twice, using once. Could be same as locale or more specific.
+            description: "Specific locale setting for the shop frontend or operations."
+            tests:
+              - not_null
+              # - accepted_values: # Add known valid locale codes
+              #     values: ['en_US', 'en_GB', 'de_DE', 'fr_FR', 'es_ES'] # Example values
+
+          - name: "'platform_type'"
+            description: "Type or version of the platform (e.g., 'Cloud', 'OnPremise', 'Enterprise')."
+              # tests:
+              # - not_null # If always present
+            # - accepted_values:
+            #     values: ['Cloud', 'OnPremise', 'SaaS', 'Enterprise'] # Example values
+

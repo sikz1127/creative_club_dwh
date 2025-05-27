@@ -1,0 +1,17 @@
+[project]
+name = "TCC-PROJECT"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Katalina Zamora",email = "katalina.zamora@knistr.com"}
+]
+
+[tool.poetry.dependencies]
+python = "3.10.9"
+pandas = "^1.5.2"
+dbt-core = "1.9.4"
+dbt-snowflake = "1.9.4"
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+ package-mode = false
