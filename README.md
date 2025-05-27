@@ -121,5 +121,3 @@ raw   →  stg   →  core   →  mart
 - Implement **SCD Type 2** for dimensions that require history.  
 - CI/CD & Testing: Add dbt tests (`not_null`, `unique`, `relationships`) and integrate with GitHub Actions.  
 - Enforce **RBAC** and data governance in Snowflake.  
-- Optimize performance: clustering keys on fact tables, right-size warehouses.  
-
