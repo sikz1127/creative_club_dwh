@@ -91,7 +91,7 @@ raw   →  stg   →  core   →  mart
 - **`price`** & **`quantity`** used to compute `position_amount = quantity * price`.  
 - **Precision:** Cast to **`DECIMAL(10,4)`** and `ROUND(price,4)` for all monetary/unit fields; final line amounts stored as **`DECIMAL(12,2)`**.  
 - **Unit of Measure:** Assumed price is **per-unit** in EUR.  
-- **Ambiguity:** If price were total per line, use `price / quantity`; we assume per-unit for the PoC.
+- **Ambiguity:** If price were total per line, use `price / quantity`; I assume per-unit for the PoC.
 
 ### 5.5 Shops (`stg_shops` → `core.d_shops`)
 - Static lookup of shop metadata: `shop_id`, `shop`, `platform`, `locale`, etc.  
