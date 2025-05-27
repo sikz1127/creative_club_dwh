@@ -6,8 +6,7 @@ Welcome to your new dbt project!
 This project is a **proof-of-concept data warehouse** built on Snowflake, orchestrated with dbt. It demonstrates an end-to-end pipeline from raw CSV landing through business-ready marts, supporting the CEO’s key metrics:
 
 - **Order Intake & Revenue** by shop, location, time  
-- **Drop-off Rate** from intake to shipped revenue  
-- **Shipping Lag** (purchase → delivery)  
+- **Drop-off Rate** from intake to shipped revenue
 - **New vs. Returning Customers** over time  
 
 ---
@@ -109,9 +108,6 @@ raw   →  stg   →  core   →  mart
 
 - **`rep_order_intake_vs_revenue`**  
   Intake, revenue, and drop-off rate by date/shop/location.
-
-- **`rep_shipping_lag`**  
-  Average & median shipping lag by date/shop.
 
 - **`rep_customer_retention`**  
   Absolute & relative new vs. returning customers over time.
